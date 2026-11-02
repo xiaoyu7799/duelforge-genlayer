@@ -13,7 +13,6 @@ const PRICE_SOURCES = [
   { url: 'https://api.coindesk.com/v1/bpi/currentprice/USD.json', label: 'CoinDesk', parse: (d: any) => d?.bpi?.USD?.rate_float ?? d?.bpi?.USD?.rate },
   { url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', label: 'CoinGecko', parse: (d: any) => d?.bitcoin?.usd },
 ]
-const COINDESK_URL = 'https://api.coindesk.com/v1/bpi/currentprice/USD.json'
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
 
 type TxState = { kind: string; hash: string; stage: 'submitted' | 'waiting' | 'finalized' | 'error'; detail?: string } | null
@@ -496,7 +495,7 @@ export default function App() {
             </ul>
             <h2>{t.sourcesTitle}</h2>
             <ul>
-              <li>{t.sourcesPrice}: <a href={COINDESK_URL} target="_blank" rel="noreferrer">CoinDesk BTC/USD</a> · <a href={COINGECKO_URL} target="_blank" rel="noreferrer">CoinGecko simple price</a></li>
+              <li>{t.sourcesPrice}: <a href={COINGECKO_URL} target="_blank" rel="noreferrer">CoinGecko simple price</a></li>
               <li>{t.sourcesContract}: <a href={explorerAddress(CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">{t.txContract}: {short(CONTRACT_ADDRESS)}</a> · <a href={EXPLORER} target="_blank" rel="noreferrer">explorer-studio.genlayer.com</a></li>
             </ul>
             <p className="muted small">{t.footerNote}</p>

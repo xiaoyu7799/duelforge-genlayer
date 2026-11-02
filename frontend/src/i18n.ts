@@ -95,7 +95,7 @@ export const en = {
   honestTitle: 'Limits',
   honestTest: 'All balances are nominal TEST units. They have no real-world value and nothing real is held or transferred.',
   sourcesTitle: 'Sources & trust',
-  sourcesPrice: 'Price display sources',
+  sourcesPrice: 'Price display source',
   sourcesContract: 'Contract & explorer',
   footerNote: 'DuelForge runs only on GenLayer Stable Studionet (chain 61999), gasless and at zero cash cost.',
   soundOn: 'Sound on',
