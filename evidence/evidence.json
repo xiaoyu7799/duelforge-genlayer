@@ -1,0 +1,108 @@
+{
+  "network": "GenLayer Stable Studionet",
+  "chainId": 61999,
+  "rpc": "https://studio.genlayer.com/api",
+  "contractAddress": "0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33",
+  "contractExplorer": "https://explorer-studio.genlayer.com/address/0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "c3266a0872909e877fcb9bb3659f62998da4b8849e1c0b09e6ad3e3b7a7128c9",
+  "deployTx": "0x9726093b3c7e5d96580011eb09f54d726ab53bf007602887cb93ce04914577f1",
+  "deployStatus": "FINALIZED",
+  "transactions": [
+    {
+      "duel": 0,
+      "action": "create",
+      "hash": "0xff62e6a23e64ea0bd50680793fe46cae2506f18193139decb4c6d8fb3627b1b1",
+      "status": "FINALIZED"
+    },
+    {
+      "duel": 0,
+      "action": "join",
+      "hash": "0x1bc6a782d639c65a949ae39b632d59d0eb2eec4a289288ae2e1f07b47f20917d",
+      "status": "FINALIZED"
+    },
+    {
+      "duel": 0,
+      "action": "settle",
+      "hash": "0x196d1e9fd22d26a9019c234d56e8b53c7f71cf17ca6df2f6084b3a2fb88948c5",
+      "status": "FINALIZED"
+    },
+    {
+      "duel": 1,
+      "action": "create",
+      "hash": "0xdaf82e5d6214574a3ecd5c93899f49845a88d5766381c0fa9a03e4eeeaf36220",
+      "status": "FINALIZED"
+    },
+    {
+      "duel": 1,
+      "action": "join",
+      "hash": "0x9da77847a7d093a8e6c80e25615c94cc4bff3b4f7d87aa36d3840b2fa528b6b1",
+      "status": "FINALIZED"
+    },
+    {
+      "duel": 1,
+      "action": "settle",
+      "hash": "0x497c1b1d283149fe4950fe506af172353a50ca9d6df7413543fc3d591f6b5ac3",
+      "status": "FINALIZED"
+    }
+  ],
+  "duels": [
+    {
+      "duel": 0,
+      "threshold": 50000,
+      "stake": 100,
+      "pool": 200,
+      "readBack": {
+        "id": 0,
+        "threshold": 50000,
+        "creator": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
+        "joiner": "0xB1d3809853FeC25b264eefB4A7DDE1A61aD0806d",
+        "creator_side": "YES",
+        "joiner_side": "NO",
+        "stake": 100,
+        "pool": 200,
+        "status": "SETTLED",
+        "winner_side": "YES",
+        "winner": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
+        "settled_outcome": "YES"
+      }
+    },
+    {
+      "duel": 1,
+      "threshold": 100000,
+      "stake": 100,
+      "pool": 200,
+      "readBack": {
+        "id": 1,
+        "threshold": 100000,
+        "creator": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
+        "joiner": "0xB1d3809853FeC25b264eefB4A7DDE1A61aD0806d",
+        "creator_side": "YES",
+        "joiner_side": "NO",
+        "stake": 100,
+        "pool": 200,
+        "status": "SETTLED",
+        "winner_side": "NO",
+        "winner": "0xB1d3809853FeC25b264eefB4A7DDE1A61aD0806d",
+        "settled_outcome": "NO"
+      }
+    }
+  ],
+  "leaderboard": [
+    {
+      "address": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
+      "balance": 1000,
+      "wins": 1,
+      "losses": 1
+    },
+    {
+      "address": "0xB1d3809853FeC25b264eefB4A7DDE1A61aD0806d",
+      "balance": 1000,
+      "wins": 1,
+      "losses": 1
+    }
+  ],
+  "browserWalletPath": "NOT VERIFIED -- no browser-wallet write was tested in this run.",
+  "checkedAt": "2026-11-02T19:13:05.049Z",
+  "note": "Nominal TEST units only. No real assets held or transferred. Script end-to-end FINALIZED does not equal browser-wallet path verified."
+}

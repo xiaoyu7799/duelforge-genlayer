@@ -1,0 +1,14 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "explorer": "https://explorer-studio.genlayer.com/address/0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33",
+  "studio": "https://studio.genlayer.com/?import-contract=0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33",
+  "contractAddress": "0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33",
+  "deployTxHash": "0x9726093b3c7e5d96580011eb09f54d726ab53bf007602887cb93ce04914577f1",
+  "deployer": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "c3266a0872909e877fcb9bb3659f62998da4b8849e1c0b09e6ad3e3b7a7128c9",
+  "deployedAt": "2026-11-02T19:13:05.049Z",
+  "receiptStatus": "FINALIZED"
+}

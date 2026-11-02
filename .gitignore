@@ -1,0 +1,5 @@
+node_modules/
+scripts/.deploy-checkpoint.json
+*.log
+
+frontend/dist/
