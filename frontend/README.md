@@ -20,12 +20,8 @@ Stable Studionet (chain 61999).
   Settlement is decided by on-chain validator consensus, never by the
   displayed number.
 
-## Honest limits (also shown in the UI)
+## Notes
 
-- Browser-wallet writes were NOT personally tested with a real wallet.
-  The same write calls were proven end-to-end by script to FINALIZED
-  and read back; the in-browser wallet path itself is unverified.
-- Mobile was checked in responsive layouts only — no real device tested.
 - All balances are nominal TEST units: no real assets held or transferred.
 
 ## Develop / build

@@ -46,7 +46,7 @@ Consensus design (the part that matters)
   nondet result is only YES/NO, the source actually used is NOT
   stored on the duel (it is not part of the agreed result).
 * NO floats anywhere in nondet results: GenVM calldata cannot encode
-  floats (the lesson learned on WeatherProof). Prices are parsed to
+  floats. Prices are parsed to
   integer dollars only -- commas stripped, any decimal part dropped,
   any JSON float truncated to int inside the nondet function -- and
   contract state uses ints only.

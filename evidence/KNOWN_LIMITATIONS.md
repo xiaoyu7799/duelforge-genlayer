@@ -1,4 +1,4 @@
-# DuelForge — Known limitations (honest, read before judging)
+# DuelForge — Known limitations
 
 - Nominal TEST units only. Stakes, pools, balances and leaderboard figures are
   demo accounting units on Stable Studionet. No real assets are held, transferred

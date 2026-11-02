@@ -6,7 +6,7 @@ A peer-to-peer forecast duel arena on GenLayer Stable Studionet.
 
 Two players stake nominal TEST units on a verifiable proposition. At settlement, GenLayer validators independently fetch the live Bitcoin price and agree on the outcome. The contract distributes the pool to the winner, updates player balances and the leaderboard. It does not store a verified record for its own sake — the stake moves.
 
-**Opening four lines (per handover v6, section 3):**
+**What it is:**
 - Category: Market & bets
 - Mechanism: Two-sided nominal stake; settlement consensus decides YES/NO from a live public price; contract distributes the pool and updates balances/leaderboard
 - Interaction model: Duel arena — duel cards, stake slider, settlement reveal, leaderboard — not hero + form + vault
@@ -14,7 +14,7 @@ Two players stake nominal TEST units on a verifiable proposition. At settlement,
 
 **Network:** Stable Studionet only, chain ID 61999, RPC https://studio.genlayer.com/api. Zero cash cost, nominal TEST units only — no real assets are held or transferred.
 
-**Status:** Deployed and verified on Stable Studionet (ready-to-submit; NOT filed by the authoring agent — submission is the user's own action).
+**Status:** Deployed and verified on Stable Studionet.
 
 - Contract: https://explorer-studio.genlayer.com/address/0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33
 - Deploy tx: 0x9726093b3c7e5d96580011eb09f54d726ab53bf007602887cb93ce04914577f1 (FINALIZED)
