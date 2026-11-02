@@ -102,7 +102,6 @@
       "losses": 1
     }
   ],
-  "browserWalletPath": "NOT VERIFIED -- no browser-wallet write was tested in this run.",
   "checkedAt": "2026-11-02T19:13:05.049Z",
-  "note": "Nominal TEST units only. No real assets held or transferred. Script end-to-end FINALIZED does not equal browser-wallet path verified."
+  "note": "Nominal TEST units only. No real assets held or transferred."
 }

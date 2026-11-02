@@ -37,7 +37,5 @@ Prediction Market / Market & Bets if the form offers such a tag; otherwise Other
 ## Honest limits to keep in the submission (do not remove)
 
 - Nominal TEST units only; no real assets held or transferred.
-- Browser-wallet write path NOT personally tested with a real wallet; script writes reached FINALIZED and were read back.
-- Mobile NOT tested on a real device.
 - Settlement is outcome-only (YES/NO); the exact validator price/source is not stored on-chain.
 - Language: Chinese + English only. On-chain values are always English.

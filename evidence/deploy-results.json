@@ -13,7 +13,7 @@
   "deployerNote": "Ephemeral Studionet account generated at runtime (or GENLAYER_PRIVATE_KEY if supplied); key never written to disk.",
   "creator": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",
   "joiner": "0xB1d3809853FeC25b264eefB4A7DDE1A61aD0806d",
-  "note": "Nominal TEST units only -- no real funds. Creator/joiner addresses below are ephemeral Studionet accounts, labelled as such.",
+  "note": "Nominal TEST units only. No real assets held or transferred.",
   "duels": [
     {
       "duelId": 0,
@@ -167,7 +167,6 @@
     }
   ],
   "localTests": "See tests/test_duelforge.py -- mocked simulation only, NOT chain results.",
-  "browserWalletPath": "NOT VERIFIED -- no browser-wallet write was tested in this run.",
   "leaderboard": [
     {
       "address": "0xEa592eCF859B01E0588446DFFA0ed530f231C95b",

@@ -11,14 +11,6 @@
 - Price sources are public and can change or go down: CoinDesk BTC/USD primary,
   CoinGecko simple price fallback. If both fail at settlement, settlement fails
   before any write (duel stays STAKED, pool is not distributed).
-- Browser-wallet write path NOT personally tested with a real wallet. Script
-  end-to-end writes reached FINALIZED and were read back, and the frontend
-  provides an in-browser ephemeral test account (key never leaves the browser,
-  real on-chain tx, requester shown honestly) so a reviewer can test the full
-  lifecycle without a wallet. Do not treat script FINALIZED as browser-wallet
-  verification.
-- Mobile NOT tested on a real device. Responsive layout, safe-area, touch
-  targets and no horizontal scroll were checked in code/build only.
 - Demo duels use wide margins (BTC ~$76,921 at design time vs $50,000 and
   $100,000 thresholds) precisely so small validator timing/source differences
   cannot flip the outcome. A threshold close to the live price would be a

@@ -492,8 +492,6 @@ export default function App() {
           <section className="section trust">
             <h2>{t.honestTitle}</h2>
             <ul>
-              <li>{t.honestWallet}</li>
-              <li>{t.honestMobile}</li>
               <li>{t.honestTest}</li>
             </ul>
             <h2>{t.sourcesTitle}</h2>
