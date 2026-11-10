@@ -1,0 +1,149 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "contractAddress": "0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "studio": "https://studio.genlayer.com/?import-contract=0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "d8060cfd56f241b02942b6bdc4892d0a3e01ac98e4c31a42b12cd9c27ccd861f",
+  "note": "Nominal TEST units only -- no real funds. Creator/joiner/third addresses below are ephemeral Studionet accounts, labelled as such.",
+  "case": "(d) Negative cases -- lifecycle rejections recorded on-chain",
+  "openDuelId": 3,
+  "openDuelCreateTxHash": "0xc2e9701a94280eb1f0db8f1b143381dffd12278167cc79aeb0d8322207ded75b",
+  "openDuelCreateReceiptStatus": "FINALIZED",
+  "openDuelReadBack": {
+    "id": 3,
+    "asset": "BTC",
+    "threshold": 60000,
+    "creator": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "joiner": null,
+    "creator_side": "YES",
+    "joiner_side": null,
+    "stake": 100,
+    "pool": 0,
+    "status": "OPEN",
+    "winner_side": null,
+    "winner": null,
+    "settled_outcome": null
+  },
+  "cases": [
+    {
+      "name": "create with unknown asset",
+      "duelId": 99,
+      "asset": "SOL",
+      "expectedError": "asset_must_be_BTC_or_ETH",
+      "result": {
+        "txHash": "0x901c8ad3e9a1b3b7ee36e800ae12a14f2184be73facc114fb4ecb99e0b4cdf91",
+        "status": "REJECTED_RECORDED",
+        "outcome": {
+          "sentTx": true,
+          "receiptStatus": "FINALIZED",
+          "receipt": {
+            "status": "FINALIZED",
+            "rawStatus": 7,
+            "voteMentions": {
+              "AGREE": 4,
+              "DISAGREE": 0
+            },
+            "result": 6
+          }
+        },
+        "stateUnchangedVerified": true
+      }
+    },
+    {
+      "name": "cancel by non-creator",
+      "duelId": 3,
+      "expectedError": "only_creator_can_cancel",
+      "result": {
+        "txHash": "0x79c4621d44bd6408f9719205f906f40511ada2cd972e7dc6e5fce188835b0042",
+        "status": "REJECTED_RECORDED",
+        "outcome": {
+          "sentTx": true,
+          "receiptStatus": "FINALIZED",
+          "receipt": {
+            "status": "FINALIZED",
+            "rawStatus": 7,
+            "voteMentions": {
+              "AGREE": 4,
+              "DISAGREE": 0
+            },
+            "result": 6
+          }
+        },
+        "stateUnchangedVerified": true
+      }
+    },
+    {
+      "name": "join own duel",
+      "duelId": 3,
+      "expectedError": "cannot_join_own_duel",
+      "result": {
+        "txHash": "0x32bda00a82c3b90c568e61bcb0450e26924d9ba86eaf9f45f744e364ee295922",
+        "status": "REJECTED_RECORDED",
+        "outcome": {
+          "sentTx": true,
+          "receiptStatus": "FINALIZED",
+          "receipt": {
+            "status": "FINALIZED",
+            "rawStatus": 7,
+            "voteMentions": {
+              "AGREE": 4,
+              "DISAGREE": 0
+            },
+            "result": 6
+          }
+        },
+        "stateUnchangedVerified": true
+      }
+    },
+    {
+      "name": "settle an OPEN (unstaked) duel",
+      "duelId": 3,
+      "expectedError": "duel_not_staked",
+      "result": {
+        "txHash": "0xdbf99f04bf062b4e172ba662ef762cf74a612cb55dd8cc3129f095996d2bf335",
+        "status": "REJECTED_RECORDED",
+        "outcome": {
+          "sentTx": true,
+          "receiptStatus": "FINALIZED",
+          "receipt": {
+            "status": "FINALIZED",
+            "rawStatus": 7,
+            "voteMentions": {
+              "AGREE": 6,
+              "DISAGREE": 0
+            },
+            "result": 6
+          }
+        },
+        "stateUnchangedVerified": true
+      }
+    },
+    {
+      "name": "settle an already-SETTLED duel",
+      "duelId": 0,
+      "expectedError": "duel_not_staked",
+      "result": {
+        "txHash": "0x9e4c98ebe6917d9d7681e9f93b87dcb209c5057263e091f1b60185ec8f27b286",
+        "status": "REJECTED_RECORDED",
+        "outcome": {
+          "sentTx": true,
+          "receiptStatus": "FINALIZED",
+          "receipt": {
+            "status": "FINALIZED",
+            "rawStatus": 7,
+            "voteMentions": {
+              "AGREE": 4,
+              "DISAGREE": 0
+            },
+            "result": 6
+          }
+        },
+        "stateUnchangedVerified": true
+      }
+    }
+  ],
+  "checkedAt": "2026-11-10T06:52:36.798Z"
+}

@@ -5,18 +5,44 @@ Category: Market & bets. This is NOT fetch-then-record.
 
 What happens
 ------------
-1. A creator opens a duel: a duel id, a BTC price threshold in whole
-   US dollars, a side ("YES" = BTC will be above the threshold at
-   settlement, "NO" = it will not), and a stake in nominal TEST units.
-   The creator's stake is deducted immediately.
+1. A creator opens a duel: a duel id, an asset ("BTC" or "ETH"), a
+   price threshold in whole US dollars, a side ("YES" = the asset
+   price will be above the threshold at settlement, "NO" = it will
+   not), and a stake in nominal TEST units. The creator's stake is
+   deducted immediately.
 2. A second, different player joins the opposite side. Joining stakes
    exactly the same amount, so the pool is exactly 2 x stake and the
    duel moves OPEN -> STAKED.
 3. Anyone settles a STAKED duel. Validators independently fetch the
-   live Bitcoin price and must agree on the OUTCOME only ("YES" or
-   "NO"). The contract then distributes the whole pool to the winner
-   exactly once and updates both players' win/loss records and the
-   leaderboard. A settled duel is immutable.
+   live price of THAT asset and must agree on the OUTCOME only
+   ("YES" or "NO"). The contract then distributes the whole pool to
+   the winner exactly once and updates both players' win/loss
+   records and the leaderboard. A settled duel is immutable.
+4. A creator may cancel an OPEN duel instead (see "Cancel" below).
+   A cancelled duel can never be joined or settled.
+
+Multi-asset duels (market expansion)
+------------------------------------
+* The duel carries an `asset` field, "BTC" or "ETH". Any other value
+  is rejected with a UserError before any write, so no duel and no
+  player record is created by a bad-asset create.
+* Settlement fetches the price for the duel's own asset only. BTC
+  keeps its v1 sources; ETH uses its own free/keyless sources (see
+  "Price sources" below). The consensus design is UNCHANGED: only
+  YES/NO is agreed, the exact price is never compared and never
+  stored.
+
+Cancel (lifecycle exit for open duels)
+--------------------------------------
+* `cancel_duel` is creator-only and OPEN-only. It refunds the
+  creator's stake to their nominal balance in full and moves the
+  duel OPEN -> CANCELLED. A cancelled duel is terminal: join and
+  settle both reject on it, exactly as they reject on a SETTLED
+  duel. There is no time-based expiry -- cancel is manual only and
+  introduces no new clock dependency.
+* Cancelling a STAKED or SETTLED duel is rejected, so a pool that
+  already has two players in it can never be pulled back by a
+  unilateral cancel; a STAKED duel can only end by settlement.
 
 Nominal TEST units only
 -----------------------
@@ -38,9 +64,13 @@ Consensus design (the part that matters)
   timing/source differences in the raw price therefore cannot flip
   a duel unless the price is genuinely sitting on the threshold --
   which is why the demo duels use wide margins (see below).
-* Price sources, tried in order, all free and keyless:
+* Price sources, tried in order, all free and keyless. BTC:
     - CoinDesk BTC/USD: https://api.coindesk.com/v1/bpi/currentprice/USD.json
     - CoinGecko simple price: https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd
+  ETH:
+    - CoinGecko simple price: https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd
+    - Coinbase exchange rates: https://api.coinbase.com/v2/exchange-rates?currency=ETH
+      (data.rates.USD, a plain USD-per-ETH rate string)
   The first source that answers 200 with a parseable price wins, for
   the leader and for every validator independently. Because the
   nondet result is only YES/NO, the source actually used is NOT
@@ -57,22 +87,33 @@ Consensus design (the part that matters)
   retried. A settled duel can never be re-settled, so the pool can
   never be distributed twice.
 
-Demo duels (wide margins; BTC ~$76,921 at design time)
+Demo duels (wide margins; BTC ~$74,700 and ETH ~$2,120 at
+milestone design time, 2026-11-10)
 ------------------------------------------------------
-* Duel 0: threshold $50,000, proposition "BTC price in USD is above
-  $50,000 at settlement" -> expected YES wins.
-* Duel 1: threshold $100,000, proposition "BTC price in USD is above
-  $100,000 at settlement" -> expected NO wins.
-  A validator timing difference of a few dollars cannot flip either
-  outcome while BTC is anywhere near its design-time price.
+* Duel 0 (BTC): threshold $50,000, proposition "BTC price in USD is
+  above $50,000 at settlement" -> expected YES wins.
+* Duel 1 (BTC): threshold $100,000, proposition "BTC price in USD is
+  above $100,000 at settlement" -> expected NO wins.
+* Duel 0 (ETH, milestone): threshold $1,500, proposition "ETH price
+  in USD is above $1,500 at settlement" -> expected YES wins.
+  A validator timing difference of a few dollars cannot flip any of
+  these outcomes while the prices are anywhere near their
+  design-time values.
 
 Enforced invariants (all checked before any write)
 --------------------------------------------------
 * Duplicate duel ids rejected; a duel id, once used, is never reused.
+* The asset must be exactly "BTC" or "ETH" (case-insensitive on
+  input, stored upper-case); anything else is rejected before any
+  write.
 * The same player cannot join both sides (joiner != creator).
 * Join only from OPEN, only on the opposite side, only at exactly
   the duel's stake (joining stakes the duel stake automatically).
+  Joining or settling a CANCELLED duel is rejected, as on SETTLED.
 * Settlement only from STAKED; settled duels are immutable.
+* Cancel only by the creator, only from OPEN; cancelling refunds
+  the creator's stake in full and the duel becomes CANCELLED and
+  terminal.
 * Pool distributed exactly once (the STAKED -> SETTLED transition is
   the only place a credit happens, and SETTLED rejects re-settlement).
 * Balances never go negative (every deduction is balance-checked
@@ -86,10 +127,20 @@ from genlayer import *
 
 STARTING_CREDIT = 1000
 
-PRICE_SOURCES = (
+PRICE_SOURCES_BTC = (
     ("https://api.coindesk.com/v1/bpi/currentprice/USD.json", "coindesk"),
-    ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", "coingecko"),
+    ("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", "coingecko_btc"),
 )
+
+PRICE_SOURCES_ETH = (
+    ("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd", "coingecko_eth"),
+    ("https://api.coinbase.com/v2/exchange-rates?currency=ETH", "coinbase_eth"),
+)
+
+# Backwards-compatible alias: the v1 BTC source list.
+PRICE_SOURCES = PRICE_SOURCES_BTC
+
+SUPPORTED_ASSETS = ("BTC", "ETH")
 
 
 def _to_int_dollars(value) -> int:
@@ -144,6 +195,12 @@ class DuelForge(gl.Contract):
             raise gl.vm.UserError("EXPECTED: side_must_be_YES_or_NO")
         return value
 
+    def _check_asset(self, asset: str) -> str:
+        value = asset.strip().upper()
+        if value not in SUPPORTED_ASSETS:
+            raise gl.vm.UserError("EXPECTED: asset_must_be_BTC_or_ETH")
+        return value
+
     def _find_player(self, address: str):
         """Return (index, record) or (-1, None) without creating a player."""
         index = 0
@@ -186,10 +243,12 @@ class DuelForge(gl.Contract):
     def create_duel(
         self,
         duel_id: u256,
+        asset: str,
         threshold: u256,
         side: str,
         stake: u256,
     ) -> u256:
+        asset = self._check_asset(asset)
         side = self._check_side(side)
         stake_int = int(stake)
         threshold_int = int(threshold)
@@ -209,6 +268,7 @@ class DuelForge(gl.Contract):
         self._save_player(creator_index, creator_record)
         duel = {
             "id": int(duel_id),
+            "asset": asset,
             "threshold": threshold_int,
             "creator": creator,
             "joiner": None,
@@ -224,6 +284,23 @@ class DuelForge(gl.Contract):
         self.duels[duel_id] = json.dumps(duel)
         self.duel_ids.append(duel_id)
         return duel_id
+
+    @gl.public.write
+    def cancel_duel(self, duel_id: u256) -> str:
+        duel = self._load_duel(duel_id)
+        if duel["status"] != "OPEN":
+            raise gl.vm.UserError("EXPECTED: duel_not_open")
+        caller = str(gl.message.sender_address)
+        if caller != duel["creator"]:
+            raise gl.vm.UserError("EXPECTED: only_creator_can_cancel")
+        creator_index, creator_record = self._find_player(duel["creator"])
+        if creator_record is None:
+            raise gl.vm.UserError("EXPECTED: player_not_found")
+        creator_record["balance"] = int(creator_record["balance"]) + int(duel["stake"])
+        self._save_player(creator_index, creator_record)
+        duel["status"] = "CANCELLED"
+        self.duels[duel_id] = json.dumps(duel)
+        return json.dumps(duel)
 
     @gl.public.write
     def join_duel(self, duel_id: u256, side: str) -> str:
@@ -256,12 +333,17 @@ class DuelForge(gl.Contract):
         if duel["status"] != "STAKED":
             raise gl.vm.UserError("EXPECTED: duel_not_staked")
         threshold_int = int(duel["threshold"])
+        asset = duel.get("asset", "BTC")
+        if asset == "ETH":
+            sources = PRICE_SOURCES_ETH
+        else:
+            sources = PRICE_SOURCES_BTC
 
         def fetch_outcome() -> str:
             # Nondet block: no contract storage access here. Only the
-            # captured threshold and the module-level source list are
-            # used, and only a YES/NO string is returned.
-            for url, kind in PRICE_SOURCES:
+            # captured threshold and the asset's source list are used,
+            # and only a YES/NO string is returned.
+            for url, kind in sources:
                 try:
                     response = gl.nondet.web.get(url)
                 except Exception:
@@ -284,8 +366,14 @@ class DuelForge(gl.Contract):
                             raw = usd["rate_float"]
                         else:
                             raw = usd["rate"]
-                    else:
+                    elif kind == "coingecko_btc":
                         raw = data["bitcoin"]["usd"]
+                    elif kind == "coingecko_eth":
+                        raw = data["ethereum"]["usd"]
+                    elif kind == "coinbase_eth":
+                        raw = data["data"]["rates"]["USD"]
+                    else:
+                        continue
                     price = _to_int_dollars(raw)
                 except Exception:
                     continue

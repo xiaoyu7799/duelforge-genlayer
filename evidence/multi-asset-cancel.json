@@ -1,0 +1,96 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "contractAddress": "0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "studio": "https://studio.genlayer.com/?import-contract=0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "d8060cfd56f241b02942b6bdc4892d0a3e01ac98e4c31a42b12cd9c27ccd861f",
+  "note": "Nominal TEST units only -- no real funds. Creator/joiner/third addresses below are ephemeral Studionet accounts, labelled as such.",
+  "case": "(c) Cancel journey -- open duel cancelled, refund, then join/settle fail",
+  "duelId": 2,
+  "asset": "BTC",
+  "threshold": 50000,
+  "creatorSide": "YES",
+  "stake": 100,
+  "creator": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+  "creatorNote": "Ephemeral Studionet account, labelled as such.",
+  "createTxHash": "0x32e47443246b4c99fcb50a03c535a4471a8bc2f7524a2b56f59864eb9596b5e9",
+  "createReceiptStatus": "FINALIZED",
+  "cancelTxHash": "0x9299e8c81c885c0d72c2655e1e8d6c9be4925cc4592050196d8b5eeb5532e2ea",
+  "cancelReceiptStatus": "FINALIZED",
+  "cancelReceipt": {
+    "status": "FINALIZED",
+    "rawStatus": 7,
+    "voteMentions": {
+      "AGREE": 4,
+      "DISAGREE": 0
+    },
+    "result": 6
+  },
+  "creatorBalanceBeforeCancel": 1100,
+  "creatorBalanceAfterCancel": 1200,
+  "refundedStake": 100,
+  "joinAttempt": {
+    "txHash": "0xbaac05b192e381c30e74c73c1a17b2a86967da377e60b7259af234688c2f40b2",
+    "status": "REJECTED_RECORDED",
+    "outcome": {
+      "sentTx": true,
+      "receiptStatus": "FINALIZED",
+      "receipt": {
+        "status": "FINALIZED",
+        "rawStatus": 7,
+        "voteMentions": {
+          "AGREE": 4,
+          "DISAGREE": 0
+        },
+        "result": 6
+      }
+    },
+    "stateUnchangedVerified": true,
+    "expectedError": "duel_not_open"
+  },
+  "settleAttempt": {
+    "txHash": "0x245cc61ba73cb889cd82da929c2895652e47fcbfc725688f00eccf729bf64136",
+    "status": "REJECTED_RECORDED",
+    "outcome": {
+      "sentTx": true,
+      "receiptStatus": "FINALIZED",
+      "receipt": {
+        "status": "FINALIZED",
+        "rawStatus": 7,
+        "voteMentions": {
+          "AGREE": 4,
+          "DISAGREE": 0
+        },
+        "result": 6
+      }
+    },
+    "stateUnchangedVerified": true,
+    "expectedError": "duel_not_staked"
+  },
+  "readBack": {
+    "id": 2,
+    "asset": "BTC",
+    "threshold": 50000,
+    "creator": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "joiner": null,
+    "creator_side": "YES",
+    "joiner_side": null,
+    "stake": 100,
+    "pool": 0,
+    "status": "CANCELLED",
+    "winner_side": null,
+    "winner": null,
+    "settled_outcome": null
+  },
+  "creatorPlayerAfterCancel": {
+    "address": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "balance": 1200,
+    "wins": 2,
+    "losses": 0,
+    "exists": true
+  },
+  "checkedAt": "2026-11-10T06:48:39.457Z"
+}

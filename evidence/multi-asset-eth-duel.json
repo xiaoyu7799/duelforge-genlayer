@@ -1,0 +1,71 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "contractAddress": "0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "studio": "https://studio.genlayer.com/?import-contract=0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "d8060cfd56f241b02942b6bdc4892d0a3e01ac98e4c31a42b12cd9c27ccd861f",
+  "note": "Nominal TEST units only -- no real funds. Creator/joiner/third addresses below are ephemeral Studionet accounts, labelled as such.",
+  "case": "(a) ETH duel end-to-end",
+  "duelId": 0,
+  "asset": "ETH",
+  "threshold": 1500,
+  "proposition": "ETH price in USD is above $1,500 at settlement",
+  "livePriceContext": "Live ETH ~$2,120 at design time (2026-11-10); threshold $1,500 is a wide margin below it, so the expected outcome is YES wins.",
+  "creatorSide": "YES",
+  "joinerSide": "NO",
+  "stake": 100,
+  "pool": 200,
+  "creator": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+  "creatorNote": "Ephemeral Studionet account, labelled as such.",
+  "joiner": "0x959A1a23b56F18B7FE2ECE2bAc9f853680EbC15a",
+  "joinerNote": "Ephemeral Studionet account, labelled as such.",
+  "createTxHash": "0x8e52f06f9105f460e0a94c1a08ddd046b25ed71d5aae0d9843ab029f8aeb1fec",
+  "createReceiptStatus": "FINALIZED",
+  "joinTxHash": "0x70943416fd6bf357d4390b5c4fed7afbb140eb5a53a594f0bb004ef3cd128094",
+  "joinReceiptStatus": "FINALIZED",
+  "settleTxHash": "0xaba8ccb0aaba1a40db6ec7c8fd9f1fb2596d23c211f54af0ea002015f159e501",
+  "settleReceiptStatus": "FINALIZED",
+  "settleReceipt": {
+    "status": "FINALIZED",
+    "rawStatus": 7,
+    "voteMentions": {
+      "AGREE": 4,
+      "DISAGREE": 0
+    },
+    "result": 6
+  },
+  "expectedWinnerSide": "YES",
+  "readBack": {
+    "id": 0,
+    "asset": "ETH",
+    "threshold": 1500,
+    "creator": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "joiner": "0x959A1a23b56F18B7FE2ECE2bAc9f853680EbC15a",
+    "creator_side": "YES",
+    "joiner_side": "NO",
+    "stake": 100,
+    "pool": 200,
+    "status": "SETTLED",
+    "winner_side": "YES",
+    "winner": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "settled_outcome": "YES"
+  },
+  "creatorPlayer": {
+    "address": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+    "balance": 1100,
+    "wins": 1,
+    "losses": 0,
+    "exists": true
+  },
+  "joinerPlayer": {
+    "address": "0x959A1a23b56F18B7FE2ECE2bAc9f853680EbC15a",
+    "balance": 900,
+    "wins": 0,
+    "losses": 1,
+    "exists": true
+  },
+  "checkedAt": "2026-11-10T06:43:50.877Z"
+}

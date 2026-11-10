@@ -1,0 +1,43 @@
+{
+  "network": "Stable Studionet",
+  "chainId": 61999,
+  "rpcUrl": "https://studio.genlayer.com/api",
+  "contractAddress": "0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "explorer": "https://explorer-studio.genlayer.com/address/0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "studio": "https://studio.genlayer.com/?import-contract=0xe8cE44E500bF327174a8dABAC80b78cD414262e7",
+  "contractFile": "contracts/duelforge.py",
+  "contractSha256": "d8060cfd56f241b02942b6bdc4892d0a3e01ac98e4c31a42b12cd9c27ccd861f",
+  "note": "Nominal TEST units only -- no real funds. Creator/joiner/third addresses below are ephemeral Studionet accounts, labelled as such.",
+  "title": "DuelForge milestone evidence -- multi-asset duels (BTC + ETH) + cancel for open duels",
+  "milestone": "Market expansion: new playable markets (ETH alongside BTC) + a lifecycle exit (cancel for open duels). Settlement consensus (strict_eq on YES/NO only) reused unchanged; no new gate or verdict dimension.",
+  "v1Contract": "0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33 (untouched; v1 evidence in evidence/evidence.json and evidence/deploy-results.json)",
+  "deployTxHash": "0xe252535aae16a5efe233006c7210d86241dce9297b0769be7dc458621fffe06d",
+  "deployReceiptStatus": "FINALIZED",
+  "deployer": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+  "deployerNote": "Ephemeral Studionet account generated at runtime (or GENLAYER_PRIVATE_KEY if supplied); key never written to any repo file.",
+  "deployedCodeSha256": "d8060cfd56f241b02942b6bdc4892d0a3e01ac98e4c31a42b12cd9c27ccd861f",
+  "deployedCodeVerified": true,
+  "cases": {
+    "ethDuel": "evidence/multi-asset-eth-duel.json",
+    "btcRegression": "evidence/multi-asset-btc-regression.json",
+    "cancelJourney": "evidence/multi-asset-cancel.json",
+    "negativeCases": "evidence/multi-asset-negative-cases.json"
+  },
+  "leaderboard": [
+    {
+      "address": "0xad7580aFa53BF258Bd77510F20E4dA49F5953A13",
+      "balance": 1100,
+      "wins": 2,
+      "losses": 0
+    },
+    {
+      "address": "0x959A1a23b56F18B7FE2ECE2bAc9f853680EbC15a",
+      "balance": 800,
+      "wins": 0,
+      "losses": 2
+    }
+  ],
+  "localTests": "See tests/test_duelforge.py -- mocked simulation only, NOT chain results.",
+  "browserWalletPath": "NOT VERIFIED -- no browser-wallet write was tested in this run.",
+  "checkedAt": "2026-11-10T06:52:38.041Z"
+}

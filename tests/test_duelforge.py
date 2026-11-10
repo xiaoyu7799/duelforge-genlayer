@@ -33,15 +33,24 @@ class _Message:
 
 class _Web:
     # payload set by each test: {"price": <int|float|str>} or None = fail
+    # fail_substrings: URL substrings that raise (simulates a source down)
     payload = None
+    fail_substrings = []
 
     @staticmethod
     def get(url):
+        for sub in _Web.fail_substrings:
+            if sub in url:
+                raise RuntimeError("source down (mocked)")
         if _Web.payload is None:
             raise RuntimeError("source down")
         price = _Web.payload["price"]
         if "coindesk" in url:
             body = json.dumps({"bpi": {"USD": {"rate_float": price}}}).encode()
+        elif "ids=ethereum" in url:
+            body = json.dumps({"ethereum": {"usd": price}}).encode()
+        elif "coinbase" in url:
+            body = json.dumps({"data": {"currency": "ETH", "rates": {"USD": str(price)}}}).encode()
         else:
             body = json.dumps({"bitcoin": {"usd": price}}).encode()
         resp = types.SimpleNamespace(status=200, body=body)
@@ -159,8 +168,9 @@ def player(c, addr):
 def t_yes_branch():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     assert duel(c, 0)["status"] == "OPEN"
+    assert duel(c, 0)["asset"] == "BTC"
     assert player(c, CREATOR)["balance"] == 900  # 1000 starting - 100 stake
     as_addr(JOINER)
     c.join_duel(0, "NO")
@@ -187,7 +197,7 @@ check("happy path YES branch (76921 > 50000, pool to creator)", t_yes_branch)
 def t_no_branch():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(1, 100000, "YES", 100)
+    c.create_duel(1, "BTC", 100000, "YES", 100)
     as_addr(JOINER)
     c.join_duel(1, "NO")
     _Web.payload = {"price": 76921}
@@ -206,10 +216,10 @@ check("NO branch (76921 < 100000, pool to joiner)", t_no_branch)
 def t_dup():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     as_addr(JOINER)
     try:
-        c.create_duel(0, 50000, "NO", 100)
+        c.create_duel(0, "BTC", 50000, "NO", 100)
     except UserError as e:
         assert "duel_id_already_exists" in str(e)
         return
@@ -223,7 +233,7 @@ check("duplicate duel id rejected", t_dup)
 def t_double_join():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     # creator cannot join own duel
     try:
         c.join_duel(0, "NO")
@@ -249,7 +259,7 @@ check("double-join / own-join / join-after-staked rejected", t_double_join)
 def t_wrong_side():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     as_addr(JOINER)
     try:
         c.join_duel(0, "YES")
@@ -266,7 +276,7 @@ check("wrong (same) side on join rejected", t_wrong_side)
 def t_settle_open():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     _Web.payload = {"price": 76921}
     try:
         c.settle_duel(0)
@@ -283,7 +293,7 @@ check("settle-from-OPEN rejected", t_settle_open)
 def t_pool_once():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     as_addr(JOINER)
     c.join_duel(0, "NO")
     _Web.payload = {"price": 76921}
@@ -307,7 +317,7 @@ def t_negative():
     c = fresh()
     as_addr(CREATOR)
     try:
-        c.create_duel(0, 50000, "YES", 2000)
+        c.create_duel(0, "BTC", 50000, "YES", 2000)
     except UserError as e:
         assert "insufficient_balance" in str(e)
     else:
@@ -320,16 +330,16 @@ check("negative-balance guard (stake > 1000 rejected, no player minted)", t_nega
 
 
 # 9. Invalid inputs: stake 0, threshold 0, bad side
-expect_error("stake 0 rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, 50000, "YES", 0))[1], "stake_must_be_positive")
-expect_error("threshold 0 rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, 0, "YES", 100))[1], "threshold_must_be_positive")
-expect_error("bad side rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, 50000, "MAYBE", 100))[1], "side_must_be_YES_or_NO")
+expect_error("stake 0 rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, "BTC", 50000, "YES", 0))[1], "stake_must_be_positive")
+expect_error("threshold 0 rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, "BTC", 0, "YES", 100))[1], "threshold_must_be_positive")
+expect_error("bad side rejected", lambda: (as_addr(CREATOR), fresh().create_duel(0, "BTC", 50000, "MAYBE", 100))[1], "side_must_be_YES_or_NO")
 
 
 # 10. Settled duel immutable: join after settle rejected
 def t_immutable():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
     as_addr(JOINER)
     c.join_duel(0, "NO")
     _Web.payload = {"price": 76921}
@@ -361,14 +371,202 @@ check("price parsing int/float/comma-string -> int dollars, no float returned", 
 def t_count_list():
     c = fresh()
     as_addr(CREATOR)
-    c.create_duel(0, 50000, "YES", 100)
-    c.create_duel(1, 100000, "NO", 50)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    c.create_duel(1, "BTC", 100000, "NO", 50)
     assert c.get_duel_count() == 2
     lst = json.loads(c.list_duels(0, 20))
     assert [d["id"] for d in lst] == [0, 1], lst
 
 
 check("duel count and list views", t_count_list)
+
+
+# 13. ETH duel end-to-end, YES branch (mocked $2,120 > $1,500)
+def t_eth_yes():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "ETH", 1500, "YES", 100)
+    d = duel(c, 0)
+    assert d["asset"] == "ETH" and d["status"] == "OPEN", d
+    as_addr(JOINER)
+    c.join_duel(0, "NO")
+    _Web.payload = {"price": 2120}
+    _Web.fail_substrings = []
+    c.settle_duel(0)
+    d = duel(c, 0)
+    assert d["status"] == "SETTLED" and d["winner_side"] == "YES", d
+    assert d["winner"] == CREATOR and d["asset"] == "ETH"
+    assert player(c, CREATOR)["balance"] == 1100
+    assert player(c, CREATOR)["wins"] == 1
+
+
+check("ETH duel end-to-end YES branch (2120 > 1500, pool to creator)", t_eth_yes)
+
+
+# 14. ETH settle falls back to Coinbase when CoinGecko is down
+def t_eth_fallback():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "ETH", 1500, "YES", 100)
+    as_addr(JOINER)
+    c.join_duel(0, "NO")
+    _Web.payload = {"price": 2120}
+    _Web.fail_substrings = ["coingecko"]
+    try:
+        c.settle_duel(0)
+    finally:
+        _Web.fail_substrings = []
+    d = duel(c, 0)
+    assert d["status"] == "SETTLED" and d["winner_side"] == "YES", d
+    assert player(c, CREATOR)["balance"] == 1100
+
+
+check("ETH settle falls back to Coinbase when CoinGecko is down", t_eth_fallback)
+
+
+# 15. ETH NO branch (mocked $2,120 < $3,000)
+def t_eth_no():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "ETH", 3000, "YES", 100)
+    as_addr(JOINER)
+    c.join_duel(0, "NO")
+    _Web.payload = {"price": 2120}
+    _Web.fail_substrings = []
+    c.settle_duel(0)
+    d = duel(c, 0)
+    assert d["status"] == "SETTLED" and d["winner_side"] == "NO", d
+    assert d["winner"] == JOINER
+    assert player(c, JOINER)["balance"] == 1100
+
+
+check("ETH duel NO branch (2120 < 3000, pool to joiner)", t_eth_no)
+
+
+# 16. Unknown asset rejected before any write: no duel, no player minted
+def t_bad_asset():
+    c = fresh()
+    as_addr(CREATOR)
+    try:
+        c.create_duel(0, "SOL", 50000, "YES", 100)
+    except UserError as e:
+        assert "asset_must_be_BTC_or_ETH" in str(e)
+    else:
+        raise AssertionError("unknown asset accepted")
+    assert c.get_duel_count() == 0
+    assert player(c, CREATOR)["exists"] is False, "failed create minted a player"
+    # lowercase asset is normalized, not rejected
+    c.create_duel(0, "eth", 1500, "YES", 100)
+    assert duel(c, 0)["asset"] == "ETH"
+
+
+check("unknown asset rejected pre-write (no duel/player); lowercase normalized", t_bad_asset)
+
+
+# 17. Cancel by creator: refund in full, duel CANCELLED, records unchanged
+def t_cancel():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    assert player(c, CREATOR)["balance"] == 900
+    out = json.loads(c.cancel_duel(0))
+    assert out["status"] == "CANCELLED", out
+    assert out["pool"] == 0
+    assert player(c, CREATOR)["balance"] == 1000, player(c, CREATOR)
+    assert player(c, CREATOR)["wins"] == 0 and player(c, CREATOR)["losses"] == 0
+    assert duel(c, 0)["status"] == "CANCELLED"
+
+
+check("cancel by creator refunds stake in full, duel CANCELLED", t_cancel)
+
+
+# 18. Cancel by non-creator rejected; duel stays OPEN, balance unchanged
+def t_cancel_non_creator():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    as_addr(JOINER)
+    try:
+        c.cancel_duel(0)
+    except UserError as e:
+        assert "only_creator_can_cancel" in str(e)
+    else:
+        raise AssertionError("non-creator cancel accepted")
+    assert duel(c, 0)["status"] == "OPEN"
+    assert player(c, CREATOR)["balance"] == 900
+
+
+check("cancel by non-creator rejected, duel stays OPEN", t_cancel_non_creator)
+
+
+# 19. Cancel non-OPEN rejected (STAKED and SETTLED)
+def t_cancel_non_open():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    as_addr(JOINER)
+    c.join_duel(0, "NO")
+    as_addr(CREATOR)
+    try:
+        c.cancel_duel(0)
+    except UserError as e:
+        assert "duel_not_open" in str(e)
+    else:
+        raise AssertionError("cancel of STAKED accepted")
+    assert duel(c, 0)["status"] == "STAKED"
+    _Web.payload = {"price": 76921}
+    c.settle_duel(0)
+    try:
+        c.cancel_duel(0)
+    except UserError as e:
+        assert "duel_not_open" in str(e)
+    else:
+        raise AssertionError("cancel of SETTLED accepted")
+    assert duel(c, 0)["status"] == "SETTLED"
+
+
+check("cancel of STAKED / SETTLED rejected", t_cancel_non_open)
+
+
+# 20. Join and settle on CANCELLED both rejected
+def t_cancelled_terminal():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    c.cancel_duel(0)
+    as_addr(JOINER)
+    try:
+        c.join_duel(0, "NO")
+    except UserError as e:
+        assert "duel_not_open" in str(e)
+    else:
+        raise AssertionError("join of CANCELLED accepted")
+    _Web.payload = {"price": 76921}
+    try:
+        c.settle_duel(0)
+    except UserError as e:
+        assert "duel_not_staked" in str(e)
+    else:
+        raise AssertionError("settle of CANCELLED accepted")
+    assert duel(c, 0)["status"] == "CANCELLED"
+    assert player(c, CREATOR)["balance"] == 1000
+
+
+check("join and settle on CANCELLED rejected, duel stays CANCELLED", t_cancelled_terminal)
+
+
+# 21. BTC and ETH duels coexist on one contract
+def t_mixed_assets():
+    c = fresh()
+    as_addr(CREATOR)
+    c.create_duel(0, "BTC", 50000, "YES", 100)
+    c.create_duel(1, "ETH", 1500, "YES", 100)
+    assert c.get_duel_count() == 2
+    lst = json.loads(c.list_duels(0, 20))
+    assert [d["asset"] for d in lst] == ["BTC", "ETH"], lst
+
+
+check("BTC and ETH duels coexist (list shows both assets)", t_mixed_assets)
 
 
 print(f"\n{len(passed)} passed, {len(failed)} failed")
