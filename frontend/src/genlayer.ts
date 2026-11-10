@@ -1,6 +1,6 @@
 import { createClient, createAccount, generatePrivateKey } from 'genlayer-js'
 import { studionet } from 'genlayer-js/chains'
-import { TransactionStatus } from 'genlayer-js/types'
+import { TransactionStatus, TransactionHashVariant } from 'genlayer-js/types'
 
 export const CHAIN_ID = 61999
 export const CHAIN_ID_HEX = '0xf22f'
@@ -58,32 +58,37 @@ export function parseJson(raw: any) {
   return raw
 }
 
+// Gate 11: every read that feeds a displayed value is pinned to
+// transactionHashVariant "latest-final". genlayer-js defaults readContract
+// to "latest-nonfinal", which can return state from a transaction that has
+// not finalized yet — so no read below may use the default. (Same class as
+// the A3 project's fix: pin every read to latest-final.)
 export async function readDuel(id: number) {
-  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_duel', args: [BigInt(id)] })
+  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_duel', args: [BigInt(id)], transactionHashVariant: TransactionHashVariant.LATEST_FINAL })
   return parseJson(raw)
 }
 
 export async function readDuelCount(): Promise<number> {
-  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_duel_count', args: [] })
+  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_duel_count', args: [], transactionHashVariant: TransactionHashVariant.LATEST_FINAL })
   return Number(String(raw))
 }
 
 export async function readDuels(): Promise<any[]> {
   const count = await readDuelCount()
   if (count <= 0) return []
-  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'list_duels', args: [0n, BigInt(Math.min(count, 20))] })
+  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'list_duels', args: [0n, BigInt(Math.min(count, 20))], transactionHashVariant: TransactionHashVariant.LATEST_FINAL })
   const list = parseJson(raw)
   return Array.isArray(list) ? list : []
 }
 
 export async function readLeaderboard(): Promise<any[]> {
-  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_leaderboard', args: [] })
+  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_leaderboard', args: [], transactionHashVariant: TransactionHashVariant.LATEST_FINAL })
   const list = parseJson(raw)
   return Array.isArray(list) ? list : []
 }
 
 export async function readPlayer(address: string) {
-  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_player', args: [address] })
+  const raw = await readClient().readContract({ address: getContractAddress(), functionName: 'get_player', args: [address], transactionHashVariant: TransactionHashVariant.LATEST_FINAL })
   return parseJson(raw)
 }
 

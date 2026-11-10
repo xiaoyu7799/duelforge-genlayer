@@ -10,12 +10,6 @@ import {
 import { locales, type Locale } from './i18n'
 import { startAmbient, stopAmbient, playFinalizedCue, isManualOff, setManualOff } from './sound'
 
-const PRICE_SOURCES = [
-  { url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd', label: 'CoinGecko', parse: (d: any) => ({ btc: d?.bitcoin?.usd, eth: d?.ethereum?.usd }) },
-  { url: 'https://api.coindesk.com/v1/bpi/currentprice/USD.json', label: 'CoinDesk', parse: (d: any) => ({ btc: d?.bpi?.USD?.rate_float ?? d?.bpi?.USD?.rate, eth: null }) },
-]
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'
-
 type TxState = { kind: string; hash: string; stage: 'submitted' | 'waiting' | 'finalized' | 'error'; detail?: string } | null
 
 function Reveal({ children }: { children: React.ReactNode }) {
@@ -64,9 +58,11 @@ export default function App() {
   const [manifest, setManifest] = useState<{ contractAddress: string; chainId: number } | null>(null)
   const [manifestError, setManifestError] = useState(false)
   const contractAddress = manifest?.contractAddress ?? null
-  const [prices, setPrices] = useState<{ btc: number | null; eth: number | null; source: string; at: string } | null>(null)
-  const [priceErr, setPriceErr] = useState(false)
   const [assetFilter, setAssetFilter] = useState<'ALL' | Asset>('ALL')
+  // Time of the last successful FINALIZED read that produced the values on
+  // screen. Null until the first successful read — the page shows only
+  // neutral placeholders before that. Updated on every successful reload.
+  const [readbackAt, setReadbackAt] = useState<string | null>(null)
 
   const [wallet, setWallet] = useState<string | null>(null)
   const [mode, setMode] = useState<'snap' | 'ephemeral' | null>(null)
@@ -144,6 +140,9 @@ export default function App() {
       setDuels([...d].reverse())
       setBoard(b)
       setNextId(c)
+      // All three reads above are pinned to LATEST_FINAL (see genlayer.ts),
+      // so this timestamp truthfully marks a finalized readback.
+      setReadbackAt(new Date().toLocaleTimeString())
       if (!createId) setCreateId(String(c))
     } catch (e: any) {
       setLoadError((t as any)[`err_${errorCode(e)}`] || t.err_generic)
@@ -157,30 +156,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   useEffect(() => { if (manifest) loadAll() }, [manifest]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadPrice = useCallback(async () => {
-    const toUsd = (raw: any): number | null => {
-      const value = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw)
-      return Number.isFinite(value) && value > 0 ? Math.floor(value) : null
-    }
-    for (const src of PRICE_SOURCES) {
-      try {
-        const res = await fetch(src.url)
-        if (!res.ok) continue
-        const data = await res.json()
-        const parsed = src.parse(data)
-        const btc = toUsd(parsed.btc)
-        const eth = toUsd(parsed.eth)
-        if (btc !== null || eth !== null) {
-          setPrices({ btc, eth, source: src.label, at: new Date().toLocaleTimeString() })
-          setPriceErr(false)
-          return
-        }
-      } catch { /* try next source */ }
-    }
-    setPriceErr(true)
-  }, [])
-  useEffect(() => { loadPrice(); const id = setInterval(loadPrice, 60000); return () => clearInterval(id) }, [loadPrice])
 
   const refreshMine = useCallback(async (addr: string | null) => {
     if (!addr) { setMyPlayer(null); return }
@@ -344,19 +319,6 @@ export default function App() {
             <div className="vs-mid">VS</div>
             <div className="vs-side no"><span>NO</span><small>↓</small></div>
           </div>
-          <div className="price-ticker">
-            <span className="price-label">{t.priceLabel}</span>
-            {prices ? (
-              <>
-                <span className="price-row"><span className="price-asset">{t.priceBTC}</span><span className="price-value">{prices.btc !== null ? `$${prices.btc.toLocaleString()}` : '—'} <small>USD</small></span></span>
-                <span className="price-row"><span className="price-asset">{t.priceETH}</span><span className="price-value">{prices.eth !== null ? `$${prices.eth.toLocaleString()}` : '—'} <small>USD</small></span></span>
-                <span className="price-meta">{t.priceSource}: {prices.source} · {t.priceUpdated} {prices.at}</span>
-              </>
-            ) : (
-              <span className="price-value dim">{priceErr ? t.priceUnavailable : '…'}</span>
-            )}
-            <p className="price-note">{t.priceNote}</p>
-          </div>
         </section>
 
         {(tx || error || status) && (
@@ -388,6 +350,9 @@ export default function App() {
               <button className="btn ghost" onClick={loadAll} disabled={loading}>{t.refresh}</button>
             </div>
             <p className="muted small">{t.demoNote}</p>
+            {readbackAt && !loading && !loadError && (
+              <p className="muted small readback-line">✓ {t.readbackFinalized} · {readbackAt}</p>
+            )}
             <div className="filter-row" role="group" aria-label={t.filterLabel}>
               <span className="muted small">{t.filterLabel}</span>
               {(['ALL', 'BTC', 'ETH'] as const).map((f) => (
@@ -561,7 +526,6 @@ export default function App() {
             </ul>
             <h2>{t.sourcesTitle}</h2>
             <ul>
-              <li>{t.sourcesPrice}: <a href={COINGECKO_URL} target="_blank" rel="noreferrer">CoinGecko simple price</a></li>
               <li>{t.sourcesContract}: {contractAddress ? <a href={explorerAddress(contractAddress)} target="_blank" rel="noreferrer">{t.txContract}: {contractAddress}</a> : <span>{t.contractLabel} — {t.notConfirmed}</span>} · <a href={EXPLORER} target="_blank" rel="noreferrer">explorer-studio.genlayer.com</a></li>
             </ul>
             <p className="muted small">{t.footerNote}</p>
