@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CHAIN_ID, CONTRACT_ADDRESS, EXPLORER,
+  CHAIN_ID, EXPLORER,
   explorerAddress, explorerTx, short,
   readDuels, readDuelCount, readLeaderboard, readPlayer, readDuel,
   waitFinal, injectedProvider, connectWalletAddress, ensureStudionet,
   snapClient, ephemeralClient, ephemeralAddress, errorCode,
+  loadDeployment, getContractAddress, createDuelArgs, duelAsset, type Asset,
 } from './genlayer'
 import { locales, type Locale } from './i18n'
 import { startAmbient, stopAmbient, playFinalizedCue, isManualOff, setManualOff } from './sound'
 
 const PRICE_SOURCES = [
-  { url: 'https://api.coindesk.com/v1/bpi/currentprice/USD.json', label: 'CoinDesk', parse: (d: any) => d?.bpi?.USD?.rate_float ?? d?.bpi?.USD?.rate },
-  { url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', label: 'CoinGecko', parse: (d: any) => d?.bitcoin?.usd },
+  { url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd', label: 'CoinGecko', parse: (d: any) => ({ btc: d?.bitcoin?.usd, eth: d?.ethereum?.usd }) },
+  { url: 'https://api.coindesk.com/v1/bpi/currentprice/USD.json', label: 'CoinDesk', parse: (d: any) => ({ btc: d?.bpi?.USD?.rate_float ?? d?.bpi?.USD?.rate, eth: null }) },
 ]
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
+const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'
 
 type TxState = { kind: string; hash: string; stage: 'submitted' | 'waiting' | 'finalized' | 'error'; detail?: string } | null
 
@@ -58,8 +59,14 @@ export default function App() {
   const [loadError, setLoadError] = useState('')
   const [board, setBoard] = useState<any[]>([])
   const [nextId, setNextId] = useState<number | null>(null)
-  const [price, setPrice] = useState<{ value: number; source: string; at: string } | null>(null)
+  // Contract address comes only from deployment.json (see genlayer.ts).
+  // Nothing on this page renders chain values until the manifest loads.
+  const [manifest, setManifest] = useState<{ contractAddress: string; chainId: number } | null>(null)
+  const [manifestError, setManifestError] = useState(false)
+  const contractAddress = manifest?.contractAddress ?? null
+  const [prices, setPrices] = useState<{ btc: number | null; eth: number | null; source: string; at: string } | null>(null)
   const [priceErr, setPriceErr] = useState(false)
+  const [assetFilter, setAssetFilter] = useState<'ALL' | Asset>('ALL')
 
   const [wallet, setWallet] = useState<string | null>(null)
   const [mode, setMode] = useState<'snap' | 'ephemeral' | null>(null)
@@ -68,11 +75,19 @@ export default function App() {
   const [chainOk, setChainOk] = useState<boolean | null>(null)
   const [myPlayer, setMyPlayer] = useState<any>(null)
 
+  const [asset, setAsset] = useState<Asset>('BTC')
   const [threshold, setThreshold] = useState(80000)
   const [thresholdCustom, setThresholdCustom] = useState(false)
   const [side, setSide] = useState<'YES' | 'NO'>('YES')
   const [stake, setStake] = useState(100)
   const [createId, setCreateId] = useState('')
+  // Threshold presets follow the picked asset (BTC ~$80k, ETH ~$3k).
+  const THRESHOLD_PRESETS: Record<Asset, number[]> = { BTC: [50000, 80000, 100000], ETH: [2000, 3000, 4000] }
+  const pickAsset = (a: Asset) => {
+    setAsset(a)
+    setThreshold(THRESHOLD_PRESETS[a][1])
+    setThresholdCustom(false)
+  }
 
   const snapRef = useRef<any>(null)
   const [tx, setTx] = useState<TxState>(null)
@@ -131,21 +146,33 @@ export default function App() {
       setNextId(c)
       if (!createId) setCreateId(String(c))
     } catch (e: any) {
-      setLoadError(t.err_generic)
+      setLoadError((t as any)[`err_${errorCode(e)}`] || t.err_generic)
     } finally { setLoading(false) }
   }, [createId, t.err_generic])
-  useEffect(() => { loadAll() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Manifest first: no chain read runs before the address is known.
+  useEffect(() => {
+    loadDeployment()
+      .then((m) => { setManifest(m); setManifestError(false) })
+      .catch(() => { setManifestError(true); setLoading(false); setLoadError(t.err_manifest) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => { if (manifest) loadAll() }, [manifest]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPrice = useCallback(async () => {
+    const toUsd = (raw: any): number | null => {
+      const value = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw)
+      return Number.isFinite(value) && value > 0 ? Math.floor(value) : null
+    }
     for (const src of PRICE_SOURCES) {
       try {
         const res = await fetch(src.url)
         if (!res.ok) continue
         const data = await res.json()
-        const raw = src.parse(data)
-        const value = typeof raw === 'string' ? parseFloat(raw.replace(/,/g, '')) : Number(raw)
-        if (Number.isFinite(value) && value > 0) {
-          setPrice({ value: Math.floor(value), source: src.label, at: new Date().toLocaleTimeString() })
+        const parsed = src.parse(data)
+        const btc = toUsd(parsed.btc)
+        const eth = toUsd(parsed.eth)
+        if (btc !== null || eth !== null) {
+          setPrices({ btc, eth, source: src.label, at: new Date().toLocaleTimeString() })
           setPriceErr(false)
           return
         }
@@ -231,7 +258,15 @@ export default function App() {
     const id = Number(createId)
     setBusyId('create')
     await runWrite(`Create #${id}`, async (client) =>
-      client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'create_duel', args: [BigInt(id), BigInt(threshold), side, BigInt(stake)], value: 0n, leaderOnly: false }),
+      client.writeContract({ address: getContractAddress(), functionName: 'create_duel', args: createDuelArgs(id, asset, threshold, side, stake), value: 0n, leaderOnly: false }),
+      async () => { refreshMine(mode === 'ephemeral' ? ephemeralAddress() : wallet) })
+    setBusyId(null)
+  }
+
+  async function doCancel(duel: any) {
+    setBusyId(`cancel-${duel.id}`)
+    await runWrite(`Cancel #${duel.id}`, async (client) =>
+      client.writeContract({ address: getContractAddress(), functionName: 'cancel_duel', args: [BigInt(duel.id)], value: 0n, leaderOnly: false }),
       async () => { refreshMine(mode === 'ephemeral' ? ephemeralAddress() : wallet) })
     setBusyId(null)
   }
@@ -240,7 +275,7 @@ export default function App() {
     const opposite = duel.creator_side === 'YES' ? 'NO' : 'YES'
     setBusyId(`join-${duel.id}`)
     await runWrite(`Join #${duel.id}`, async (client) =>
-      client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'join_duel', args: [BigInt(duel.id), opposite], value: 0n, leaderOnly: false }),
+      client.writeContract({ address: getContractAddress(), functionName: 'join_duel', args: [BigInt(duel.id), opposite], value: 0n, leaderOnly: false }),
       async () => { refreshMine(mode === 'ephemeral' ? ephemeralAddress() : wallet) })
     setBusyId(null)
   }
@@ -248,7 +283,7 @@ export default function App() {
   async function doSettle(duel: any) {
     setBusyId(`settle-${duel.id}`)
     await runWrite(`Settle #${duel.id}`, async (client) =>
-      client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'settle_duel', args: [BigInt(duel.id)], value: 0n, leaderOnly: false }),
+      client.writeContract({ address: getContractAddress(), functionName: 'settle_duel', args: [BigInt(duel.id)], value: 0n, leaderOnly: false }),
       async () => {
         const fresh = await readDuel(Number(duel.id))
         setReveal(fresh)
@@ -259,6 +294,7 @@ export default function App() {
 
   const actingAddress = mode === 'ephemeral' ? ephAddr : wallet
   const canWrite = mode !== null
+  const visibleDuels = assetFilter === 'ALL' ? duels : duels.filter((d) => duelAsset(d) === assetFilter)
 
   return (
     <div className="app">
@@ -304,18 +340,21 @@ export default function App() {
             <a className="btn ghost big" href="#forge">{t.forgeTitle} →</a>
           </div>
           <div className="vs-strip" aria-hidden="true">
-            <div className="vs-side yes"><span>YES</span><small>BTC ↑</small></div>
+            <div className="vs-side yes"><span>YES</span><small>↑</small></div>
             <div className="vs-mid">VS</div>
-            <div className="vs-side no"><span>NO</span><small>BTC ↓</small></div>
+            <div className="vs-side no"><span>NO</span><small>↓</small></div>
           </div>
           <div className="price-ticker">
             <span className="price-label">{t.priceLabel}</span>
-            {price ? (
-              <span className="price-value">${price.value.toLocaleString()} <small>USD</small></span>
+            {prices ? (
+              <>
+                <span className="price-row"><span className="price-asset">{t.priceBTC}</span><span className="price-value">{prices.btc !== null ? `$${prices.btc.toLocaleString()}` : '—'} <small>USD</small></span></span>
+                <span className="price-row"><span className="price-asset">{t.priceETH}</span><span className="price-value">{prices.eth !== null ? `$${prices.eth.toLocaleString()}` : '—'} <small>USD</small></span></span>
+                <span className="price-meta">{t.priceSource}: {prices.source} · {t.priceUpdated} {prices.at}</span>
+              </>
             ) : (
               <span className="price-value dim">{priceErr ? t.priceUnavailable : '…'}</span>
             )}
-            {price && <span className="price-meta">{t.priceSource}: {price.source} · {t.priceUpdated} {price.at}</span>}
             <p className="price-note">{t.priceNote}</p>
           </div>
         </section>
@@ -337,7 +376,7 @@ export default function App() {
           <section className="reveal-panel">
             <h2>🏆 {t.revealTitle} — #{reveal.id}</h2>
             <p className="reveal-big">{t.revealWinner} <strong>{reveal.winner_side}</strong> {t.revealSide}</p>
-            <p>{t.winner}: {short(reveal.winner || '')} · {t.pool}: {reveal.pool} TEST · {t.threshold}: ${Number(reveal.threshold).toLocaleString()}</p>
+            <p>{t.winner}: {short(reveal.winner || '')} · {t.pool}: {reveal.pool} TEST · {duelAsset(reveal)} · {t.threshold}: ${Number(reveal.threshold).toLocaleString()}</p>
             <p className="muted">{t.revealReadback}</p>
           </section>
         )}
@@ -349,6 +388,14 @@ export default function App() {
               <button className="btn ghost" onClick={loadAll} disabled={loading}>{t.refresh}</button>
             </div>
             <p className="muted small">{t.demoNote}</p>
+            <div className="filter-row" role="group" aria-label={t.filterLabel}>
+              <span className="muted small">{t.filterLabel}</span>
+              {(['ALL', 'BTC', 'ETH'] as const).map((f) => (
+                <button key={f} className={assetFilter === f ? 'active' : ''} onClick={() => setAssetFilter(f)}>
+                  {f === 'ALL' ? t.filterAll : f}
+                </button>
+              ))}
+            </div>
             {loading ? (
               <div className="grid" aria-busy="true">
                 {[0, 1].map((i) => <div key={i} className="card skeleton"><div className="sk-line big" /><div className="sk-line" /><div className="sk-line" /></div>)}
@@ -357,16 +404,19 @@ export default function App() {
               <p className="error" role="alert">{loadError}</p>
             ) : duels.length === 0 ? (
               <div className="empty"><p>⚒</p><p>{t.noDuels}</p></div>
+            ) : visibleDuels.length === 0 ? (
+              <div className="empty"><p>⚒</p><p>{assetFilter} — {t.noDuels}</p></div>
             ) : (
               <div className="grid">
-                {duels.map((d) => (
+                {visibleDuels.map((d) => (
                   <article key={d.id} className={`card status-${d.status}`} onMouseMove={tilt} onMouseLeave={untilt}>
                     <div className="card-top">
                       <span className="duel-id">#{d.id}</span>
+                      <span className="asset-badge">{duelAsset(d)}</span>
                       <span className={`pill ${d.status}`}>{(t as any)[`status${d.status}`] || d.status}</span>
                     </div>
-                    <h3>BTC {d.creator_side === 'YES' ? '>' : '≤'} ${Number(d.threshold).toLocaleString()}</h3>
-                    <p className="muted">{d.creator_side === 'YES' ? t.sideYES : t.sideNO} · {lang === 'zh' ? '发起方' : 'creator'} {d.creator_side}</p>
+                    <h3>{duelAsset(d)} {d.creator_side === 'YES' ? '>' : '≤'} ${Number(d.threshold).toLocaleString()}</h3>
+                    <p className="muted">{duelAsset(d)} · {d.creator_side === 'YES' ? t.sideYES : t.sideNO} · {lang === 'zh' ? '发起方' : 'creator'} {d.creator_side}</p>
                     <dl>
                       <div><dt>{t.threshold}</dt><dd>${Number(d.threshold).toLocaleString()}</dd></div>
                       <div><dt>{t.stake}</dt><dd>{d.stake} TEST</dd></div>
@@ -374,13 +424,23 @@ export default function App() {
                       <div><dt>{t.creator}</dt><dd>{short(d.creator)}</dd></div>
                       {d.joiner && <div><dt>{t.joiner}</dt><dd>{short(d.joiner)}</dd></div>}
                       {d.status === 'SETTLED' && <div><dt>{t.winnerSide}</dt><dd><strong>{d.winner_side}</strong> · {short(d.winner || '')}</dd></div>}
+                      {d.status === 'CANCELLED' && <div><dt>{t.refund}</dt><dd>{d.stake} TEST</dd></div>}
                     </dl>
+                    {d.status === 'CANCELLED' && <p className="muted small">{t.cancelledNote}</p>}
                     {d.status === 'OPEN' && (
                       <>
                         <button className="btn ember full" disabled={!canWrite || busyId === `join-${d.id}`} onClick={() => doJoin(d)}>
                           {busyId === `join-${d.id}` ? t.txWaiting : t.join}
                         </button>
                         <p className="muted small">{t.joinHint}</p>
+                        {actingAddress && actingAddress.toLowerCase() === String(d.creator).toLowerCase() && (
+                          <>
+                            <button className="btn ghost full cancel-btn" disabled={!canWrite || busyId === `cancel-${d.id}`} onClick={() => doCancel(d)}>
+                              {busyId === `cancel-${d.id}` ? t.txWaiting : t.cancel}
+                            </button>
+                            <p className="muted small">{t.cancelHint}</p>
+                          </>
+                        )}
                       </>
                     )}
                     {d.status === 'STAKED' && (
@@ -408,12 +468,18 @@ export default function App() {
                 <input inputMode="numeric" value={createId} onChange={(e) => setCreateId(e.target.value)} placeholder={nextId !== null ? String(nextId) : ''} />
                 <small>{t.duelIdHint}</small>
               </label>
+              <div className="field">{t.assetLabel}
+                <div className="asset-toggle">
+                  <button className={asset === 'BTC' ? 'active' : ''} onClick={() => pickAsset('BTC')}>BTC</button>
+                  <button className={asset === 'ETH' ? 'active' : ''} onClick={() => pickAsset('ETH')}>ETH</button>
+                </div>
+                <small>{asset === 'BTC' ? t.assetBTC : t.assetETH}</small>
+              </div>
               <div className="field">{t.threshold}
                 <div className="presets">
-                  {[50000, 80000, 100000].map((v) => (
+                  {THRESHOLD_PRESETS[asset].map((v) => (
                     <button key={v} className={!thresholdCustom && threshold === v ? 'active' : ''} onClick={() => { setThreshold(v); setThresholdCustom(false) }}>${v.toLocaleString()}</button>
-                  ))}
-                  <button className={thresholdCustom ? 'active' : ''} onClick={() => setThresholdCustom(true)}>{lang === 'zh' ? '自定义' : 'Custom'}</button>
+                  ))}                  <button className={thresholdCustom ? 'active' : ''} onClick={() => setThresholdCustom(true)}>{lang === 'zh' ? '自定义' : 'Custom'}</button>
                 </div>
                 {thresholdCustom && <input type="number" min={1} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} />}
                 {!thresholdCustom && <p className="big-num">${threshold.toLocaleString()}</p>}
@@ -496,7 +562,7 @@ export default function App() {
             <h2>{t.sourcesTitle}</h2>
             <ul>
               <li>{t.sourcesPrice}: <a href={COINGECKO_URL} target="_blank" rel="noreferrer">CoinGecko simple price</a></li>
-              <li>{t.sourcesContract}: <a href={explorerAddress(CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">{t.txContract}: {short(CONTRACT_ADDRESS)}</a> · <a href={EXPLORER} target="_blank" rel="noreferrer">explorer-studio.genlayer.com</a></li>
+              <li>{t.sourcesContract}: {contractAddress ? <a href={explorerAddress(contractAddress)} target="_blank" rel="noreferrer">{t.txContract}: {contractAddress}</a> : <span>{t.contractLabel} — {t.notConfirmed}</span>} · <a href={EXPLORER} target="_blank" rel="noreferrer">explorer-studio.genlayer.com</a></li>
             </ul>
             <p className="muted small">{t.footerNote}</p>
           </section>
@@ -505,7 +571,11 @@ export default function App() {
 
       <footer className="foot">
         <span>⚒ DUELFORGE</span>
-        <a href={explorerAddress(CONTRACT_ADDRESS)} target="_blank" rel="noreferrer">{t.txContract}</a>
+        {contractAddress ? (
+          <a href={explorerAddress(contractAddress)} target="_blank" rel="noreferrer">{t.contractLabel}: {contractAddress}</a>
+        ) : (
+          <span className="muted small">{t.contractLabel} — {t.notConfirmed}</span>
+        )}
         <span className="muted small">{t.footerNote}</span>
       </footer>
     </div>

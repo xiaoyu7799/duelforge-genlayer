@@ -3,3 +3,5 @@ scripts/.deploy-checkpoint.json
 *.log
 
 frontend/dist/
+
+frontend/public/deployment.json

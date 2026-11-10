@@ -3,8 +3,14 @@
 Vite + React arena UI for the deployed DuelForge contract on GenLayer
 Stable Studionet (chain 61999).
 
-- Contract: `0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33`
-  ([explorer](https://explorer-studio.genlayer.com/address/0x06D8b71D50FFd24035639cf0A93F620C8Fa2AA33))
+- Contract: read at runtime from `deployment.json` (repo root; copied
+  into the built site by the `prebuild` step). The address is never
+  hard-coded in the frontend — a redeploy only needs a new manifest,
+  and nothing renders chain values until it loads.
+- Duels are multi-asset: BTC or ETH. The forge form picks the asset,
+  cards carry an asset badge, the board filters by asset, and the
+  creator of an OPEN duel can cancel it — the stake is refunded to
+  their balance and the duel can never be joined or settled.
 - Reading duels / leaderboard works with no wallet.
 - Wallet: any injected EVM wallet, OKX first (`window.okxwallet ||
   window.ethereum`), never MetaMask-only. GenLayer writes via the
@@ -16,9 +22,9 @@ Stable Studionet (chain 61999).
   On-chain values are always English (YES/NO, status strings).
 - Sound: user-toggled, never autoplay; auto-enables on first click with
   the button synced, never auto-re-enables after a manual close.
-- Price ticker (CoinDesk primary, CoinGecko fallback) is display only.
-  Settlement is decided by on-chain validator consensus, never by the
-  displayed number.
+- Price ticker (CoinGecko BTC+ETH primary, CoinDesk BTC fallback) is
+  display only. Settlement is decided by on-chain validator consensus,
+  never by the displayed number.
 
 ## Notes
 
